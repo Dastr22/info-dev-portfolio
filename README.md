@@ -1,1 +1,20 @@
 # info-dev-portfolio
+# 👋 Hi, I'm Trishna Das
+Technical Writer | Information Developer
+
+📍 Bangalore  
+🛠 Tools: Markdown, Git, DITA, Confluence, Sphinx
+
+## About Me
+Brief introduction (2–3 lines about your expertise)
+
+## Portfolio Highlights
+- 📘 API Documentation
+- 📗 User Guides
+- 📙 Release Notes
+- 📕 Tutorials & How-Tos
+
+## Contact
+- LinkedIn:
+- Email: dastr2864@gmail.com
+``
