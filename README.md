@@ -15,6 +15,5 @@ Brief introduction (2–3 lines about your expertise)
 - 📕 Tutorials & How-Tos
 
 ## Contact
-- LinkedIn:
+- LinkedIn:https://www.linkedin.com/in/dastr17
 - Email: dastr2864@gmail.com
-``
