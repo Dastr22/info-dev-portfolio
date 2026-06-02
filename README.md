@@ -3,7 +3,7 @@
 Technical Writer | Information Developer
 
 📍 Bangalore  
-🛠 Tools: Markdown, Git, DITA, Confluence, Sphinx
+🛠 Tools: Markdown, Git, DITA, Confluence, Oxygen XML, Visual studio, AEM
 
 ## About Me
 Brief introduction (2–3 lines about your expertise)
