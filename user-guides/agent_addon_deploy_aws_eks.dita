@@ -1,0 +1,421 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE task PUBLIC "-//IBM//DTD DITA IBM Task//EN" "ibm-task.dtd">
+<task id="agent_addon_deploy_aws_eks" xml:lang="en-us">
+<title>Deploying the <keyword
+conref="../../../../Documents/GitHub/mq_10_id/wmq/common/mqent.dita#mqent/mqagent"/> into Amazon EKS
+cluster</title>
+<!--To optimize search results, add tags that clarify product name, target platform, or other contexts. To enable the tags, right-click, select Refactoring > Toggle Comment.-->
+<!--<titlealts><navtitle></navtitle><searchtitle></searchtitle></titlealts>-->
+<!--Put your short description next; used for first paragraph and abstract.-->
+<shortdesc/>
+<!--To optimize PDF retrievability, add prolog and indexing tags that help crystalize why users should be looking up this topic (purpose, task, and what they will learn)-->
+<!--<prolog><metadata><keywords><indexterm></indexterm></keywords></metadata></prolog>-->
+<shortdesc>Deploy the <keyword
+conref="../../../../Documents/GitHub/mq_10_id/wmq/common/mqent.dita#mqent/mqagent"/> into your
+cluster and configure it to be able to connect to your <keyword
+conref="../../../../Documents/GitHub/mq_10_id/wmq/common/mqent.dita#mqent/mq"/> queue managers.
+Deploying the <keyword
+conref="../../../../Documents/GitHub/mq_10_id/wmq/common/mqent.dita#mqent/mqagent"/> creates a pod
+with two containers: one for the <keyword
+conref="../../../../Documents/GitHub/mq_10_id/wmq/common/mqent.dita#mqent/mqagent"/> and one for a
+Model Context Protocol (MCP) server that connects to your queue managers</shortdesc>
+<taskbody>
+<prereq>
+<ul>
+<li>Ensure that you meet the requirements and that you completed the previous steps listed in <xref
+href="../../../../Documents/GitHub/mq_10_id/wmq/agent/agent_addon_install.dita"/>.</li>
+<li>Install the following command-line utilities in your cluster (the instructions in this task use
+commands, though you can use your container environment’s web interface if you prefer):<ul>
+<li><cmdname>oc</cmdname>. For more information, see the documentation for your version of <keyword
+conref="../../../../Documents/GitHub/mq_10_id/wmq/common/mqent.dita#mqent/rhocp"/>. For example,
+<xref
+href="https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html/cli_tools/openshift-cli-oc#cli-about-cli_cli-developer-commands"
+format="html" scope="external">Getting started with the OpenShift CLI</xref>.</li>
+<li><cmdname>helm</cmdname> version 3 or above. For more information, see the same page in the
+<keyword conref="../../../../Documents/GitHub/mq_10_id/wmq/common/mqent.dita#mqent/rhos"/>
+documentation.</li>
+<li><keyword conref="../../../../Documents/GitHub/mq_10_id/wmq/common/mqent.dita#mqent/ibmcloud"/>
+Container Registry CLI. For more information, see <xref
+href="https://cloud.ibm.com/docs/Registry?topic=Registry-registry_setup_cli_namespace" format="html"
+scope="external">Setting up the Container Registry CLI and namespace</xref> in the <keyword
+conref="../../../../Documents/GitHub/mq_10_id/wmq/common/mqent.dita#mqent/ibmcloud"/>
+documentation.</li>
+</ul></li>
+<li>Deploy the <keyword
+conref="../../../../Documents/GitHub/mq_10_id/wmq/common/mqent.dita#mqent/ils"/> into your cluster.
+This software is required for monitoring license usage of queue managers. For instructions, see
+<xref href="https://www.ibm.com/docs/en/SSGT7J_latest/administration/license_service_cp4i.html"
+format="html" scope="external">Deploying License Service</xref></li>
+</ul>
+</prereq>
+<context>
+<p>In this task, you create the objects in your cluster that the <keyword
+conref="../../../../Documents/GitHub/mq_10_id/wmq/common/mqent.dita#mqent/mqagent"/> requires to
+connect to your <keyword
+conref="../../../../Documents/GitHub/mq_10_id/wmq/common/mqent.dita#mqent/mq"/> installation and
+instance of <keyword
+conref="../../../../Documents/GitHub/mq_10_id/wmq/common/mqent.dita#mqent/mqconsole"/>. You can
+create objects by using either the <keyword
+conref="../../../../Documents/GitHub/mq_10_id/wmq/common/mqent.dita#mqent/rhos"/> console or the
+CLI. The following steps use the CLI. </p>
+<p>You start by creating the following objects:<ul>
+<li>A <keyword conref="../../../../Documents/GitHub/mq_10_id/wmq/common/mqent.dita#mqent/rhos"/>
+ConfigMap object that contains information about your <keyword
+conref="../../../../Documents/GitHub/mq_10_id/wmq/common/mqent.dita#mqent/mq"/> queue managers, in
+the form of a client channel definition table (CCDT)</li>
+<li><keyword conref="../../../../Documents/GitHub/mq_10_id/wmq/common/mqent.dita#mqent/rhos"/>
+Secret objects that contain credentials and keys for secure connections</li>
+<li>An override file, to override some of the default values for the <keyword
+conref="../../../../Documents/GitHub/mq_10_id/wmq/common/mqent.dita#mqent/mqagent"/> configuration
+properties</li>
+</ul></p>
+<p>You then deploy the <keyword
+conref="../../../../Documents/GitHub/mq_10_id/wmq/common/mqent.dita#mqent/mqagent"/>, which creates
+more objects in your cluster, including a pod with containers for the following components:<ul>
+<li>The <keyword conref="../../../../Documents/GitHub/mq_10_id/wmq/common/mqent.dita#mqent/mqagent"
+/>.</li>
+<li>An MCP server that uses an <keyword
+conref="../../../../Documents/GitHub/mq_10_id/wmq/common/mqent.dita#mqent/mq"/> client with your
+CCDT ConfigMap to connect to your queue managers. An MCP server is a program that connects AI agents
+to external data, tools, and systems. For more information, see <xref
+href="https://modelcontextprotocol.io/docs/learn/server-concepts" format="html" scope="external"
+>Understanding MCP servers</xref> in the Model Context Protocol documentation.</li>
+<li product="GHE2149">The embedding foundation model that the <keyword
+conref="../../../../Documents/GitHub/mq_10_id/wmq/common/mqent.dita#mqent/mqagent"/> uses to answer
+<keyword conref="../../../../Documents/GitHub/mq_10_id/wmq/common/mqent.dita#mqent/mq"/>
+documentation questions. For more information, see <xref
+href="../../../../Documents/GitHub/mq_10_id/wmq/agent/agent_models.dita"/>.</li>
+</ul></p>
+<p>For more information about config maps and secrets, see the documentation for your version of
+<keyword conref="../../../../Documents/GitHub/mq_10_id/wmq/common/mqent.dita#mqent/rhos"/>. For
+example, <xref
+href="https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/nodes/index#configmaps"
+format="html" scope="external">Creating and using config maps</xref> and <xref
+href="https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html/nodes/working-with-pods#nodes-pods-secrets"
+format="html" scope="external">Providing sensitive data to pods by using secrets</xref>. </p>
+</context>
+<steps>
+<step>
+<cmd>Log in to your cluster by using the <cmdname>oc</cmdname> command. For more information, see
+the documentation for your version of <keyword
+conref="../../../../Documents/GitHub/mq_10_id/wmq/common/mqent.dita#mqent/rhos"/>.</cmd><info>For
+example, <xref
+href="https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html/cli_tools/openshift-cli-oc#cli-logging-in_cli-developer-commands"
+format="html" scope="external">Logging in to the <tm trademark="OpenShift" tmtype="reg"
+>OpenShift</tm> CLI</xref>.</info>
+</step>
+<step importance="optional"><cmd>Create a namespace (project) for the <keyword
+conref="../../../../Documents/GitHub/mq_10_id/wmq/common/mqent.dita#mqent/mqagent"
+/>.</cmd><stepxmp>For example:<codeblock>oc new-project mq-agent</codeblock></stepxmp></step>
+<step><cmd>Switch to the namespace (project) where you want to deploy the <keyword
+conref="../../../../Documents/GitHub/mq_10_id/wmq/common/mqent.dita#mqent/mqagent"/>.</cmd><info>For
+example:<codeblock>oc project mq-agent</codeblock></info></step>
+<step><cmd>In your cluster, create, a Secret object to contain your key for pulling software from
+the <keyword conref="../../../../Documents/GitHub/mq_10_id/wmq/common/mqent.dita#mqent/ibmcloud"/>
+Container Registry.</cmd><info>They key must be an image pull secret called
+<userinput>ibm-entitlement-key</userinput>. The key will be used during deployment to pull the
+<keyword conref="../../../../Documents/GitHub/mq_10_id/wmq/common/mqent.dita#mqent/mqagent"/> and
+<keyword conref="../../../../Documents/GitHub/mq_10_id/wmq/common/mqent.dita#mqent/mqagent"/> images
+from the <keyword
+conref="../../../../Documents/GitHub/mq_10_id/wmq/common/mqent.dita#mqent/ibmcloud"/> Container
+Registry.</info><substeps>
+<substep><cmd>Get the entitlement key that is assigned to your <keyword
+conref="../../../../Documents/GitHub/mq_10_id/wmq/common/mqent.dita#mqent/ibm"/> ID. Log in to <xref
+href="https://myibm.ibm.com/products-services/containerlibrary" format="html" scope="external">My
+IBM Container Software Library</xref> with the <keyword
+conref="../../../../Documents/GitHub/mq_10_id/wmq/common/mqent.dita#mqent/ibm"/> ID and password
+that are associated with the entitled software.</cmd></substep>
+<substep><cmd>In the <uicontrol>Entitlement keys</uicontrol> section, click
+<uicontrol>Copy</uicontrol> to copy the entitlement key to the clipboard.</cmd></substep>
+</substeps><info>From the <keyword
+conref="../../../../Documents/GitHub/mq_10_id/wmq/common/mqent.dita#mqent/rhos"/> CLI, run the
+following command to create an image pull secret called
+<userinput>ibm-entitlement-key</userinput>.<codeblock>oc create secret docker-registry ibm-entitlement-key \
+--docker-server=cp.icr.io \
+--docker-username=cp \
+--docker-password=<varname>&lt;entitlement_key></varname> \
+--docker-email=<varname>&lt;user_email></varname> \
+--namespace=<varname>&lt;namespace></varname></codeblock>where
+<codeph><varname>&lt;entitlement_key></varname></codeph> is the entitlement key that you copied
+earlier, <codeph><varname>&lt;user_email></varname></codeph> is the IBMID that is associated with
+the entitled software, and <codeph><varname>&lt;namespace></varname></codeph> is the namespace where
+you are deploying the <keyword
+conref="../../../../Documents/GitHub/mq_10_id/wmq/common/mqent.dita#mqent/mqagent"/>.</info></step>
+<step id="configmap"><cmd>Create a ConfigMap object to contain information about the <keyword
+conref="../../../../Documents/GitHub/mq_10_id/wmq/common/mqent.dita#mqent/mq"> </keyword> queue
+managers that you want the <keyword
+conref="../../../../Documents/GitHub/mq_10_id/wmq/common/mqent.dita#mqent/mqagent"/> to work
+with.</cmd><info>This information is used by the <keyword
+conref="../../../../Documents/GitHub/mq_10_id/wmq/common/mqent.dita#mqent/mqagent"/> MCP server to
+connect to your queue managers. </info><substeps>
+<substep><cmd>Create an <keyword
+conref="../../../../Documents/GitHub/mq_10_id/wmq/common/mqent.dita#mqent/mq"/> client channel
+definition table (<xref href="../configure/q132905_.dita" scope="peer">CCDT</xref>), in JSON
+format.</cmd><stepxmp>For example, copy the following JSON code and save it as a local file called
+<filepath>my-ccdt.json</filepath>:<codeblock>{
+        "channel": [
+            {
+                "name": "QM1.SVRCONN",
+                "clientConnection": {
+                    "connection": [
+                        {
+                            "host": "qm1.yourdomain.com",
+                            "port": 1414
+                        }
+                    ],
+                    "queueManager": "qm1"
+                },
+                "transmissionSecurity": {
+                    "cipherSpecification": "ANY_TLS13_OR_HIGHER",
+                    "certificateLabel": "CN=agent"
+                },
+                "type": "clientConnection"
+            }
+        ]
+}
+</codeblock></stepxmp></substep>
+<substep><cmd>Edit the file to replace the contents with your own information.</cmd><info>Add an
+entry for each of the queue managers that you granted access for in <xref
+href="../../../../Documents/GitHub/mq_10_id/wmq/agent/agent_preparing_qmgrs.dita"/>.<note
+type="other" othertype="Restrictions">
+<ul>
+<li>Do not add more than 20 queue managers in the CCDT; higher numbers impact performance. If you
+exceed this limit, the <keyword
+conref="../../../../Documents/GitHub/mq_10_id/wmq/common/mqent.dita#mqent/mqagent">MCP
+server</keyword> MCP server does not start and an error is generated in the MCP server container
+log.</li>
+<li>Do not use <xref href="../develop/q027490_.dita" scope="peer">queue manager groups</xref> or
+duplicate queue manager names in the CCDT; such names are ignored by the MCP server.</li>
+<li>Do not use asterisks in queue manager names in the CCDT. The <keyword
+conref="../../../../Documents/GitHub/mq_10_id/wmq/common/mqent.dita#mqent/mqagent">MCP
+server</keyword> finds such names ambiguous when you use them the <keyword
+conref="../../../../Documents/GitHub/mq_10_id/wmq/common/mqent.dita#mqent/mqagent">MCP
+server</keyword> chat assistant, leading to clarification questions.</li>
+</ul>
+</note></info></substep>
+<substep><cmd>Create the ConfigMap from the JSON file</cmd><info>For example, run the following
+command:<codeblock>oc create configmap my-ccdt --from-file=ccdt.json=my-ccdt.json</codeblock></info></substep>
+</substeps></step>
+<step id="configini"><cmd>If queue manager connections in your CCDT require a password to connect,
+create a Secret object to contain the necessary credentials.</cmd><info>The <keyword
+conref="../../../../Documents/GitHub/mq_10_id/wmq/common/mqent.dita#mqent/mqagent">MCP
+server</keyword> MCP server uses these credentials when it connects to the queue managers. The
+secret must contain a key called <codeph>my-mcp-configuration</codeph>, with a value that lists the
+username and password for each connection. </info><substeps>
+<substep><cmd>Create a <filepath>.ini</filepath> file.</cmd><stepxmp>Copy the following
+<filepath>.ini</filepath> file template and save it as a local file called
+<filepath>my-mcpconfig.ini</filepath>:<codeblock>[mqenv]
+# Default username and password for client connectivity to IBM MQ queue managers
+# (you can override this for individual queue managers, as shown in the following section)
+username = mq-username
+password = mq-password
+# To override connection information for an individual queue manager
+# Provide one or more stanzas in the form [QM:&lt;name>]
+[QM:QM1]
+username=&lt;QM1-username>
+password=&lt;QM1-password>
+[routes]
+# Enable /health custom route for generic health check of running MCP server
+health = enabled</codeblock></stepxmp></substep>
+<substep><cmd>Edit the file to replace the username and stanza details with your own information
+(leave the <codeph>[routes]</codeph> and following lines).</cmd></substep>
+<substep><cmd>Create the Secret object from the <filepath>.ini</filepath> file.</cmd><stepxmp>For
+example, run the following
+command:<codeblock>oc create secret generic my-mcp-configuration --from-file=mcpconfig.ini=my-mcpconfig.ini</codeblock></stepxmp></substep>
+</substeps></step>
+<step><cmd>If queue manager connections in your CCDT require a TLS connection, create a Secret
+object to contain a keystore with the necessary keys.</cmd><info>The <keyword
+conref="../../../../Documents/GitHub/mq_10_id/wmq/common/mqent.dita#mqent/mqagent">MCP
+server</keyword> MCP server uses this keystore when it connects to the queue managers. </info><substeps>
+<substep><cmd>Create a PKCS#12 keystore called <codeph>mcpserver.p12</codeph>, and record the
+password that you set for the keystore.</cmd><info> The keystore must be a valid PKCS#12 keystore
+for use with <keyword conref="../../../../Documents/GitHub/mq_10_id/wmq/common/mqent.dita#mqent/mq"
+/>.</info></substep>
+<substep><cmd>Create the following keys then import them into the keystore:</cmd><info>
+<ul>
+<li>Public keys for the queue managers that you want the <keyword
+conref="../../../../Documents/GitHub/mq_10_id/wmq/common/mqent.dita#mqent/mqagent"/> to interact
+with</li>
+<li>A public and private key for the <keyword
+conref="../../../../Documents/GitHub/mq_10_id/wmq/common/mqent.dita#mqent/mqagent"/> MCP server (the
+<keyword conref="../../../../Documents/GitHub/mq_10_id/wmq/common/mqent.dita#mqent/mq"/> client
+application)</li>
+</ul>
+</info></substep>
+<substep><cmd>Create the Secret object from the <codeph>mcpserver.p12</codeph> file: </cmd><info>For
+example, run the following command to create a secret called
+<codeph>agent-qm-keystore</codeph>:<codeblock>oc create secret generic agent-qm-keystore --from-file=keystore.p12=mcpserver.p12</codeblock></info></substep>
+</substeps></step>
+<step id="tlsmqagent"><cmd>Create a Secret object to contain a TLS key for the <keyword
+conref="../../../../Documents/GitHub/mq_10_id/wmq/common/mqent.dita#mqent/mqconsole"/> to use to
+connect to the <keyword
+conref="../../../../Documents/GitHub/mq_10_id/wmq/common/mqent.dita#mqent/mqagent"/>.</cmd><info>The
+<keyword conref="../../../../Documents/GitHub/mq_10_id/wmq/common/mqent.dita#mqent/mqconsole"/>
+communicates with the agent by using an HTTPS API endpoint, which needs a key and a certificate. You
+must create a TLS Kubernetes Secret with the keys <codeph>tls.key</codeph>,
+<codeph>tls.crt</codeph>, and <codeph>ca.crt</codeph>. You also need the <codeph>ca.crt</codeph>
+file for configuring the <keyword
+conref="../../../../Documents/GitHub/mq_10_id/wmq/common/mqent.dita#mqent/mqconsole"/>.</info><substeps>
+<substep importance="optional"><cmd>For testing purposes, you could create a self-signed certificate
+with OpenSSL.</cmd><info>Create a certificate
+authority:<codeblock>openssl genpkey -algorithm rsa -pkeyopt rsa_keygen_bits:4096 -out "ca.key"
+openssl req -x509 -new -nodes -key "ca.key" -sha512 -days 30 -subj "/CN=selfsigned-ca" -out "ca.crt"
+</codeblock>Generate a certificate, replacing <codeph><varname>&lt;cluster_name></varname></codeph>
+with the name of your
+cluster.:<codeblock>openssl req -new -nodes -out "cert.csr" -newkey rsa:4096 -keyout "cert.key" -subj "/CN=*.apps.<varname>&lt;cluster_name></varname>"
+openssl x509 -req -in "cert.csr" -CA "ca.crt" -CAkey "ca.key" -CAcreateserial -out "cert.crt" -days 30 -sha512
+</codeblock></info></substep>
+<substep><cmd>Create a TLS Kubernetes Secret object called <codeph>mq-agent-tls</codeph> from the
+key and certificate.</cmd><info>Run the following
+command:<codeblock>oc create secret generic mq-agent-tls --type="kubernetes.io/tls" --from-file=tls.key=cert.key --from-file=tls.crt=cert.crt --from-file=ca.crt</codeblock></info></substep>
+</substeps></step>
+<step><cmd>Provide access to the <keyword
+conref="../../../../Documents/GitHub/mq_10_id/wmq/common/mqent.dita#mqent/mqagent"/> Helm chart in
+the <keyword conref="../../../../Documents/GitHub/mq_10_id/wmq/common/mqent.dita#mqent/ibm"/> Helm
+chart repository.</cmd><info>
+<ul>
+<li>If you already have the <keyword
+conref="../../../../Documents/GitHub/mq_10_id/wmq/common/mqent.dita#mqent/ibm"/> Helm chart
+repository, run the following command to update it: <codeblock>helm repo update ibm-helm</codeblock>
+</li>
+<li>If you do not have the <keyword
+conref="../../../../Documents/GitHub/mq_10_id/wmq/common/mqent.dita#mqent/ibm"/> Helm chart
+repository, run the following command to add it:
+<codeblock>helm repo add ibm-helm https://raw.githubusercontent.com/IBM/charts/master/repo/ibm-helm</codeblock>
+</li>
+</ul>
+</info></step>
+<step><cmd>Create an overrides file to override some of the default values for the <keyword
+conref="../../../../Documents/GitHub/mq_10_id/wmq/common/mqent.dita#mqent/mqagent"/> configuration
+properties.</cmd><info>The default values are set in the <filepath>values.yaml</filepath> file in
+the Helm chart package. You must override some of the values, for example
+<codeph>license.license</codeph> and <codeph>license.accept</codeph>, which specify the license that
+you are entitled to and whether you accept it.<ph product="GHE2149"> You can also specify that the
+<keyword conref="../../../../Documents/GitHub/mq_10_id/wmq/common/mqent.dita#mqent/mqagent"/>
+connects to a <keyword
+conref="../../../../Documents/GitHub/mq_10_id/wmq/common/mqent.dita#mqent/vllm"/> AI runtime instead
+of the default, <keyword
+conref="../../../../Documents/GitHub/mq_10_id/wmq/common/mqent.dita#mqent/watsonxairunt"
+/>.</ph><p>To override the default values, create a new YAML file called
+<filepath>overrides.yaml</filepath>, then add to that file the properties that you want to override,
+along with their new values. You will specify the <codeph>overrides.yaml</codeph> file when you
+install the <keyword
+conref="../../../../Documents/GitHub/mq_10_id/wmq/common/mqent.dita#mqent/mqagent"/>. You might also
+need the <filepath>overrides.yaml</filepath> when you upgrade the agent. </p><p>For a list of values
+that you can set, including which values are required, see <xref
+href="../../../../Documents/GitHub/mq_10_id/wmq/agent/agent_helm_values.dita"/>. If you want to see
+the default values, you can download the <filepath>values.yaml</filepath> file by using Helm; for
+more information, see <xref href="https://helm.sh/docs/helm/helm_get_values/" format="html"
+scope="external">helm get values</xref> in the Helm documentation.</p></info><stepxmp>An example
+<filepath>overrides.yaml</filepath> file:<codeblock>license:
+  accept: true
+  license: <keyword conref="../../../../Documents/GitHub/mq_10_id/wmq/common/mqent.dita#mqent/agentlicense"/>
+metadata:
+  annotations:
+    productID: "208423bb063c43288328b1d788745b0c"
+    productName: "IBM MQ Advanced"
+    productMetric: "PROCESSOR_VALUE_UNIT"
+    productChargedContainers: "All"
+agent:
+  model:
+    providers:
+      myWatsonxRuntime:
+        watsonxService:
+          projectID: my-watsonx-project
+          key: my-watsonx-project-key
+mcpServer:
+  ccdtConfigMapName: my-ccdt
+  keyStoreSecretName: agent-qm-keystore
+  keyStorePassword: <varname>&lt;mcpserver.p12_keystore_password></varname>
+  configurationSecretName: my-mcp-configuration
+route:
+  enabled: true</codeblock></stepxmp></step>
+<step><cmd>Deploy the <keyword
+conref="../../../../Documents/GitHub/mq_10_id/wmq/common/mqent.dita#mqent/mqagent"/> by using the
+<cmdname>helm install</cmdname>
+command.</cmd><stepxmp><codeblock>helm install <varname>&lt;release_name></varname> ibm-helm/ibm-mq-agent --values overrides.yaml</codeblock>where
+<codeph><varname>&lt;release_name></varname></codeph> is a name that you choose for the release, for
+example <codeph>ibm-mq-agent</codeph>.</stepxmp></step>
+</steps>
+<result>
+<p>The Helm deployment creates the following objects in your cluster:</p>
+<ul>
+<li product="GHE2149">A pod with three containers: one for the <keyword
+conref="../../../../Documents/GitHub/mq_10_id/wmq/common/mqent.dita#mqent/mqagent"/> itself, one for
+the <keyword conref="../../../../Documents/GitHub/mq_10_id/wmq/common/mqent.dita#mqent/mqagent"/>
+MCP server, and one for the embedding foundation model that the <keyword
+conref="../../../../Documents/GitHub/mq_10_id/wmq/common/mqent.dita#mqent/mqagent"/> uses for
+<keyword conref="../../../../Documents/GitHub/mq_10_id/wmq/common/mqent.dita#mqent/mq"/>
+documentation questions.</li>
+<li product="NOTGHE2149">A pod with two containers: one for the <keyword
+conref="../../../../Documents/GitHub/mq_10_id/wmq/common/mqent.dita#mqent/mqagent"/> itself and one
+for the <keyword conref="../../../../Documents/GitHub/mq_10_id/wmq/common/mqent.dita#mqent/mqagent"
+/> MCP server</li>
+<li>A service for connecting to the <keyword
+conref="../../../../Documents/GitHub/mq_10_id/wmq/common/mqent.dita#mqent/mqagent"/> from within the
+cluster</li>
+<li><b>Optional:</b> A Route for connecting to the <keyword
+conref="../../../../Documents/GitHub/mq_10_id/wmq/common/mqent.dita#mqent/mqagent"/> from outside
+the cluster</li>
+<li>A secret that contains your <keyword
+conref="../../../../Documents/GitHub/mq_10_id/wmq/common/mqent.dita#mqent/watsonxai"/><ph
+product="GHE2149"> or <keyword
+conref="../../../../Documents/GitHub/mq_10_id/wmq/common/mqent.dita#mqent/vllm"/></ph>
+credentials</li>
+<li>A secret that contains an <keyword
+conref="../../../../Documents/GitHub/mq_10_id/wmq/common/mqent.dita#mqent/mq"/> client INI file,
+with the keystore password</li>
+<li>A secret with a generated API key for the <keyword
+conref="../../../../Documents/GitHub/mq_10_id/wmq/common/mqent.dita#mqent/mqconsole"/> to use to
+access the <keyword
+conref="../../../../Documents/GitHub/mq_10_id/wmq/common/mqent.dita#mqent/mqagent"/></li>
+<li>A ServiceAccount for the pod to use. No access to the Kubernetes API is required by the pod</li>
+<li>A NetworkPolicy to protect network traffic that flows to the pod</li>
+</ul>
+</result>
+<postreq>
+<p>Check that your installation was successful.<ol>
+<li>Ensure that you are connected to your
+project:<codeblock>oc project &lt;your project name></codeblock></li>
+<li>Watch the pod status to ensure that the new pod starts
+successfully:<codeblock>oc get pods -w</codeblock>The <codeph>STATUS</codeph> should be
+<codeph>Running</codeph> and the pod name should be followed by <codeph product="GHE2149"
+>3/3</codeph><codeph product="NOTGHE2149">2/2</codeph>, which indicates that all the deployed
+containers are running. For
+example:<codeblock>NAME                                     READY   STATUS      RESTARTS   AGE
+ibm-mq-agent-mq-agent-79565f867c-p2d5j   <codeph product="GHE2149">3/3</codeph><codeph product="NOTGHE2149">2/2</codeph>     Running     0          1h</codeblock>Press
+<codeph>Ctrl+C</codeph> to stop watching. </li>
+<li>Optionally, you can run the following command to get the pod details, including the two
+containers that were deployed (<codeph>agent</codeph> and <codeph>mcp-server</codeph>).
+<codeblock>oc describe pod &lt;your pod name></codeblock></li>
+<li>Examine the container logs to check that the running applications started correctly. Note that
+the containers might take 1 to 2 minutes to start, complete their initial setup tasks, then
+establish connectivity. During this time, you might observe error messages in the logs because
+service dependencies are not yet available.<p>For the <codeph>agent</codeph>
+container:<codeblock> oc logs &lt;your pod name> -c agent | grep -A 2 -B 2 "Application startup complete"</codeblock>
+You should see output similar to the following:<codeblock>INFO    : Initializing API server
+INFO    : Agent Build Info: {'commit_id': '5e9b78a', 'build_version': 'v1.0.0'}
+INFO:     Application startup complete.
+INFO:     Uvicorn running on https://0.0.0.0:8001 (Press CTRL+C to quit)
+INFO    : 10.254.24.2:52616 - New thread ID created: TD_2ad15dd3-18b3-4139-b761-081aaf40dc89
+</codeblock></p><p>For the <codeph>mcp-server</codeph>
+container:<codeblock>oc logs ibm-mq-agent-ibm-mq-agent-6f6f48d85-qz4kn -c mcp-server | grep -A 2 -B 2 "Application startup complete"</codeblock>
+You should see output similar to the following:<codeblock>INFO:     Started server process [5]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
+INFO:     10.254.20.2:42122 - "GET /health HTTP/1.1" 200 OK
+</codeblock></p><draft-comment author="doveye@uk.ibm.com">Need similar for the Embedding
+container</draft-comment></li>
+</ol></p>
+<p>If the logs contain errors, fix the problem then retry. For example, the following error message
+in the MCP server log indicates that you have too many queue managers in your
+CCDT:<codeblock>CCDT contains 22 queue managers, which exceeds the recommended maximum of 20.</codeblock>Correct
+the CCDT, refresh the ConfigMap object, then restart the pod.</p>
+<p>For more information about error logs, see <xref
+href="../../../../Documents/GitHub/mq_10_id/wmq/agent/agent_addon_trblsht.dita"/></p>
+<p>When the pod is running as expected, proceed to <xref
+href="../../../../Documents/GitHub/mq_10_id/wmq/agent/agent_mqconsole.dita"/>.</p>
+</postreq>
+</taskbody>
+</task>
